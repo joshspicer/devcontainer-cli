@@ -1,4 +1,5 @@
 import type { Arguments, CommandBuilder } from 'yargs';
+import { log, tryInspect } from '../common/utils';
 
 type Options = {
     legoBlockName: string;
@@ -18,10 +19,14 @@ export const builder: CommandBuilder<Options, Options> = (yargs) =>
 
 export const handler = (argv: Arguments<Options>): void => {
     const { legoBlockName, verbose } = argv;
-    process.stdout.write("INSPECTING...\n");
-    process.stdout.write(legoBlockName);
-    if (verbose) {
-        process.stdout.write("verbose");
+    log(`Inspecting ${legoBlockName}...`);
+
+    const lego = tryInspect(legoBlockName);
+
+    if (lego) {
+      log(`Unique Name: ${lego.nwo}`);
+      log(`Flavor: ${lego.flavor}`);
     }
+
     process.exit(0);
 }

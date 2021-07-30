@@ -6,6 +6,13 @@
     "typescript": "^4.3.5"
   },
   "dependencies": {
+    "@types/yaml": "^1.9.7",
+    "yaml": "^1.10.2",
     "yargs": "^17.0.1"
+  },
+  "scripts": {
+    "clean": "rm -rf ./dist",
+    "watch": "npx tsc -w",
+    "build": "rm -rf ./dist || : && npx tsc && chmod +x ./dist/index.js"
   }
 }
