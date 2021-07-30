@@ -1,9 +1,11 @@
 import * as child from 'child_process';
 import * as fs from 'fs';
+import { LEGO_MODULES, LEGO_TMP } from '../common/constants'
+import { IDevcontainer } from '../contracts/IDevcontainer';
 import { IManifest, LegoFlavor } from '../contracts/IManifest';
 
 export function setupDirectories() {
-    const required_directories = ['.lego_modules'];
+    const required_directories = [LEGO_MODULES, LEGO_TMP ];
     
     required_directories.forEach(dir => {
         if (!fs.existsSync(dir)) {
@@ -13,7 +15,7 @@ export function setupDirectories() {
 }
 
 export function parseDevcontainer(pathToDevcontainer: string): IDevcontainer {
-
+    return JSON.parse(fs.readFileSync(pathToDevcontainer, 'utf8'));   
 }
 
 export function log(msg: string, header: boolean = false) {
@@ -29,7 +31,7 @@ export function log(msg: string, header: boolean = false) {
 export function tryInspectManifest(nwo: string): IManifest | undefined  {
 
     try {
-        process.chdir(`./.lego_modules/${nwo}`);
+        process.chdir(`./${LEGO_MODULES}/${nwo}`);
 
         if (fs.existsSync('./manifest.json')) {
             var manifest: IManifest = JSON.parse(fs.readFileSync('./manifest.json', 'utf8'));
@@ -51,10 +53,10 @@ export function tryInspectManifest(nwo: string): IManifest | undefined  {
 export function cloneFromGitHub(nwo: string) {
     var url = `https://github.com/${nwo}.git`;
 
-    var path = `./.lego_modules/${nwo}`;
+    var path = `./${LEGO_MODULES}/${nwo}`;
 
-    if (!fs.existsSync(`./.lego_modules/${nwo}`)) {
-        fs.mkdirSync(`./.lego_modules/${nwo}`, { recursive: true });
+    if (!fs.existsSync(`./${LEGO_MODULES}/${nwo}`)) {
+        fs.mkdirSync(`./${LEGO_MODULES}/${nwo}`, { recursive: true });
     } else {
         log("Directory already exists. Please delete cached directory and try again.");
         process.exit(0);

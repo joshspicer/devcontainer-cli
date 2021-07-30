@@ -20,7 +20,7 @@ export const handler = (argv: Arguments<Options>): void => {
 
     let devcontainer = parseDevcontainer(pathToDevcontainer);
 
-
+    // ...
 
     // Exit CLI
     process.exit(0);

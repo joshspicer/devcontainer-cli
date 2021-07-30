@@ -1,0 +1,6 @@
+{
+    "name": "Lego Block Generated Container",
+    "build": {
+        "dockerfile": "Dockerfile"
+    }
+}

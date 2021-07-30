@@ -2,10 +2,7 @@
     "base": "joshspicer/ubuntu",
     "features": [
         {
-            "name": "joshspicer/python",
-            "options": {
-                "version": "3.7"
-            }
+            "name": "joshspicer/docker-in-docker"
         }
     ]
 }

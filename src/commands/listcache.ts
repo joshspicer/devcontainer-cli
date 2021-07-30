@@ -1,5 +1,6 @@
 import type { Arguments, CommandBuilder } from 'yargs';
 import * as child from 'child_process';
+import { LEGO_MODULES } from '../common/constants';
 import { log } from '../common/utils';
 
 type Options = {
@@ -13,7 +14,7 @@ export const handler = (argv: Arguments<Options>): void => {
     const { verbose } = argv;
 
     log("Listing Cache...", true);
-    let output: string = child.execSync(`tree .lego_modules`).toString();
+    let output: string = child.execSync(`tree ${LEGO_MODULES}`).toString();
     log(output);
 
     // Exit CLI
