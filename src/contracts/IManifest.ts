@@ -3,7 +3,7 @@ export enum LegoFlavor {
     Feature = "Feature",
 }
 
-export interface ILegoBlock {
+export interface IManifest {
     nwo: string;
     flavor: LegoFlavor;
 }

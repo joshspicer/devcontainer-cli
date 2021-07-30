@@ -1,6 +1,6 @@
 import * as child from 'child_process';
 import * as fs from 'fs';
-import { ILegoBlock, LegoFlavor } from '../contracts/ILegoBlock';
+import { IManifest, LegoFlavor } from '../contracts/IManifest';
 
 export function setupDirectories() {
     const required_directories = ['.lego_modules'];
@@ -16,27 +16,21 @@ export function log(msg: string) {
     process.stdout.write(`${msg}\n`);
 }
 
-export function tryInspect(nwo: string): ILegoBlock | undefined  {
+export function tryInspectManifest(nwo: string): IManifest | undefined  {
 
     try {
         process.chdir(`./.lego_modules/${nwo}`);
 
-        let flavor: LegoFlavor;
-        if (fs.existsSync('./base.yaml')) {
-            flavor = LegoFlavor.Base;
-        } else if ( fs.existsSync('./feature.yaml')) {
-            flavor = LegoFlavor.Feature;
+        if (fs.existsSync('./manifest.json')) {
+            var manifest: IManifest = JSON.parse(fs.readFileSync('./manifest.json', 'utf8'));
+            manifest.nwo = nwo;
+            
         } else {
-            log('Expected either base.yaml or feature.yaml in repo, but found neither');
+            log('Expected a manifest.json at the root of repo');
             process.exit(1);
         }
 
-        let legoBlock: ILegoBlock = {
-            nwo,
-            flavor
-        };
-
-        return legoBlock;
+        return manifest;
   
       } catch (err) {
         log(`Lego block ${nwo} not cached and cannot be inspected.`);

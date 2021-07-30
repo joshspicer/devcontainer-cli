@@ -1,5 +1,5 @@
 import type { Arguments, CommandBuilder } from 'yargs';
-import { log, tryInspect } from '../common/utils';
+import { log, tryInspectManifest } from '../common/utils';
 
 type Options = {
     legoBlockName: string;
@@ -21,7 +21,7 @@ export const handler = (argv: Arguments<Options>): void => {
     const { legoBlockName, verbose } = argv;
     log(`Inspecting ${legoBlockName}...`);
 
-    const lego = tryInspect(legoBlockName);
+    const lego = tryInspectManifest(legoBlockName);
 
     if (lego) {
       log(`Unique Name: ${lego.nwo}`);
