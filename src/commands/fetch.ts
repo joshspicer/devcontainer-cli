@@ -1,4 +1,5 @@
 import type { Arguments, CommandBuilder } from 'yargs';
+import { setupDirectories, cloneFromGitHub } from '../common/utils';
 
 type Options = {
     legoBlockName: string;
@@ -7,7 +8,6 @@ type Options = {
 
 export const command: string = 'fetch legoBlockName';
 export const desc: string = 'Fetch a provided lego block';
-
 
 export const builder: CommandBuilder<Options, Options> = (yargs) =>
   yargs
@@ -18,10 +18,14 @@ export const builder: CommandBuilder<Options, Options> = (yargs) =>
 
 export const handler = (argv: Arguments<Options>): void => {
     const { legoBlockName, verbose } = argv;
-    process.stdout.write("FETCHING...\n");
-    process.stdout.write(legoBlockName);
-    if (verbose) {
-        process.stdout.write("verbos");
-    } 
+
+    // Set up directories if they don't exist
+    setupDirectories();
+
+    // Clone the lego block from GitHub
+    process.stdout.write(`Fetching legoblock: ${legoBlockName}`);
+    cloneFromGitHub(legoBlockName);
+
+    // Exit CLI
     process.exit(0);
 }
