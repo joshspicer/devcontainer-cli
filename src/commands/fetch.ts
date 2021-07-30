@@ -19,7 +19,7 @@ export const handler = (argv: Arguments<Options>): void => {
     setupDirectories();
 
     // Clone the lego block from GitHub
-    log(`Fetching legoblock: ${legoBlockName}\n`);
+    log(`Fetching legoblock: ${legoBlockName}\n`, true);
     cloneFromGitHub(legoBlockName);
 
     // Exit CLI

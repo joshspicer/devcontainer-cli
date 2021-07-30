@@ -1,0 +1,11 @@
+{
+    "base": "joshspicer/ubuntu",
+    "features": [
+        {
+            "name": "joshspicer/python",
+            "options": {
+                "version": "3.7"
+            }
+        }
+    ]
+}

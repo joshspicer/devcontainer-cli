@@ -12,7 +12,7 @@ export const desc: string = 'Fetch the provided lego block definition from GitHu
 export const handler = (argv: Arguments<Options>): void => {
     const { verbose } = argv;
 
-    log("Listing Cache...\n\n");
+    log("Listing Cache...", true);
     let output: string = child.execSync(`tree .lego_modules`).toString();
     log(output);
 

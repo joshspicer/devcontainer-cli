@@ -1,0 +1,34 @@
+{
+    "base": "joshspicer/ubuntu",
+    "features": [
+        {
+            "name": "joshspicer/docker-in-docker"
+        },
+        {
+            "name": "joshspicer/python",
+            "options": {
+                "version": "2"
+            }
+        },
+        {
+            "name": "joshspicer/python",
+            "options": {
+                "version": "3.7"
+            }
+        },
+        {
+            "name": "joshspicer/powershell"
+        },
+        {
+            "name": "azure_cli",
+            "localPath": "./my_laptop_folder/azure_cli",
+            "options": {
+                "IncludeAzCopy": true
+            }
+        },
+        {
+            "name": "github_cli",
+            "pinAt": "aeb5095ca29fe924ba7e8749e5a34c12992eca6e"
+        }
+    ]
+}

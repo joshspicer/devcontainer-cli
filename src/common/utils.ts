@@ -12,7 +12,17 @@ export function setupDirectories() {
     });
 }
 
-export function log(msg: string) {
+export function parseDevcontainer(pathToDevcontainer: string): IDevcontainer {
+
+}
+
+export function log(msg: string, header: boolean = false) {
+    const green = '\x1b[32m';
+    const reset = '\x1b[0m';
+    if (header)
+    {
+       msg = `${green}${msg}${reset}\n` 
+    }
     process.stdout.write(`${msg}\n`);
 }
 

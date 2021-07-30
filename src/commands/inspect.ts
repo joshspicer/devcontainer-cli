@@ -19,7 +19,7 @@ export const builder: CommandBuilder<Options, Options> = (yargs) =>
 
 export const handler = (argv: Arguments<Options>): void => {
     const { legoBlockName, verbose } = argv;
-    log(`Inspecting ${legoBlockName}...`);
+    log(`Inspecting ${legoBlockName}...`, true);
 
     const lego = tryInspectManifest(legoBlockName);
 
@@ -28,5 +28,6 @@ export const handler = (argv: Arguments<Options>): void => {
       log(`Flavor: ${lego.flavor}`);
     }
 
+    // Exit CLI
     process.exit(0);
 }
