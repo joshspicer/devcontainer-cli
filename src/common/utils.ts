@@ -8,15 +8,34 @@ export function setupDirectories() {
     const required_directories = [LEGO_MODULES, LEGO_TMP ];
     
     required_directories.forEach(dir => {
-        if (!fs.existsSync(dir)) {
+        const exist = fs.existsSync(dir);
+        if (!exist) {
             fs.mkdirSync(dir);
         }
     });
 }
 
+export function cleanBuild() {
+    const exists = fs.existsSync(LEGO_TMP);
+    if (exists) {
+        fs.unlinkSync(LEGO_TMP);
+    }
+}
+
 export function parseDevcontainer(pathToDevcontainer: string): IDevcontainer {
     return JSON.parse(fs.readFileSync(pathToDevcontainer, 'utf8'));   
 }
+
+export function validateDecontainer(devcontainer: IDevcontainer){
+    if (devcontainer.base === undefined || devcontainer.base === "") {
+        fail();
+      }
+}
+
+const fail = () => {
+    log("FATAL ERR");
+    process.exit(1);
+  }
 
 export function log(msg: string, header: boolean = false) {
     const green = '\x1b[32m';

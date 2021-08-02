@@ -1,13 +1,13 @@
-ARG BASE_IMAGE=debian
-FROM $BASE_IMAGE
+#{baseDockerfile}
 
 USER root
 
-#{containerEnv}
+#{containerEnvs}
 
 COPY apply-scripts-cache /tmp/apply-scripts-cache
+COPY do-apply.sh /tmp/do-apply.sh
 
-#{DoApplyScripts}
+RUN do-apply.sh
 
 ARG IMAGE_USER=root
 USER $IMAGE_USER
