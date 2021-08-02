@@ -1,6 +1,9 @@
 {
     "name": "Lego Block Generated Container",
     "build": {
-        "dockerfile": "Dockerfile"
+        "dockerfile": "Dockerfile",
+        "args": {
+            "BASE_IMG": "legoBlockBaseImage"
+        }
     }
 }

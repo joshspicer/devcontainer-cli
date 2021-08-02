@@ -1,4 +1,5 @@
-#{baseDockerfile}
+ARG BASE_IMG
+FROM BASE_IMG
 
 USER root
 

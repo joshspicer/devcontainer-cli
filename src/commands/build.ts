@@ -1,5 +1,8 @@
+import * as child from 'child_process';
+import * as fs from 'fs-extra';
 import type { Arguments, CommandBuilder } from 'yargs';
-import { setupDirectories, cloneFromGitHub, log, parseDevcontainer, validateDecontainer, cleanBuild } from '../common/utils';
+import { LEGO_TMP } from '../common/constants';
+import { setupDirectories, cloneFromGitHub, log, parseDevcontainer, validateDecontainer, cleanBuild, copyDir } from '../common/utils';
 
 type Options = {
     pathToDevcontainer: string;
@@ -34,7 +37,7 @@ export const handler = (argv: Arguments<Options>): void => {
     verboseLog(`Validating devcontainer`, isVerbose);
     validateDecontainer(devcontainer);
 
-    verboseLog(`[+] Checking cache for  base lego block: ${base}`, isVerbose);
+    verboseLog(`[+] Checking cache for base lego block: ${base}`, isVerbose);
     const baseInCache = true; //TODO.
 
     if (!baseInCache) {
@@ -42,8 +45,10 @@ export const handler = (argv: Arguments<Options>): void => {
     }
 
     verboseLog("[+] Copying over \'shadow\' template files to .legotmp", isVerbose);
+    fs.copySync("../src/template", `${LEGO_TMP}/`);
 
-    verboseLog("[+] Copy over base\'s Dockerfile definition to shadow file at #{baseDockerfile}", isVerbose);
+    verboseLog("[+] Build base Dockerfile and tag", isVerbose);
+    
 
     verboseLog("[+] Merge base\'s devcontainer.tmpl.json to shadow file", isVerbose);
 

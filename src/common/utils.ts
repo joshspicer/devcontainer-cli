@@ -1,5 +1,6 @@
 import * as child from 'child_process';
-import * as fs from 'fs';
+import * as fs from 'fs-extra';
+import * as path from 'path';
 import { LEGO_MODULES, LEGO_TMP } from '../common/constants'
 import { IDevcontainer } from '../contracts/IDevcontainer';
 import { IManifest, LegoFlavor } from '../contracts/IManifest';
@@ -16,11 +17,9 @@ export function setupDirectories() {
 }
 
 export function cleanBuild() {
-    const exists = fs.existsSync(LEGO_TMP);
-    if (exists) {
-        fs.unlinkSync(LEGO_TMP);
-    }
+    const exists = fs.removeSync(LEGO_TMP);
 }
+
 
 export function parseDevcontainer(pathToDevcontainer: string): IDevcontainer {
     return JSON.parse(fs.readFileSync(pathToDevcontainer, 'utf8'));   
