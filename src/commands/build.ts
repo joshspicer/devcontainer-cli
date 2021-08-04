@@ -84,8 +84,11 @@ export const handler = (argv: Arguments<Options>): void => {
 
     // Open up the final shadow files into vscode to see the final product
     if (launch) {
-      verboseLog("[+] Opening in vscode");
-      child.execSync(`code ${LEGO_TMP}`);
+      verboseLog("[+] Copying to tmp directory and opening in vscode");
+      fs.removeSync("/tmp/demo/");
+      fs.mkdirpSync("/tmp/demo")
+      fs.copySync(`${LEGO_TMP}`, '/tmp/demo/.devcontainer/', { "recursive": true , "overwrite": true});
+      child.execSync(`code /tmp/demo/`);
     }
 
     // Exit CLI
