@@ -141,11 +141,9 @@ const composeFeatures = (features: [FeatureItem | string] | undefined, base: str
     // TODO
 
     verboseLog("[+] Copy apply.sh script to shadow apply-scripts-cache file.");
-    fs.copySync(`${featurePath}/apply.sh`, `${shadowScriptsDirectoryPath}/apply.sh`);
+    fs.copySync(`${featurePath}/apply.sh`, `${shadowScriptsDirectoryPath}/${featureName.replace('', '')}-apply.sh`);
 
   });
-
-
 }
 
 const determineFeatureSkuFromManifest = (base: string) => {
