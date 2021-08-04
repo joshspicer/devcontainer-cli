@@ -1,6 +1,6 @@
 {
     "base": "joshspicer/ubuntu",
     "features": [
-         "joshspicer/docker-in-docker"
+         "joshspicer/ghcli"
     ]
 }

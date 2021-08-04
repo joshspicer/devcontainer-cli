@@ -91,7 +91,7 @@ const buildBase = (base: string | undefined) => {
   const tag = "legoblockbaseimgcached"
 
   const basePath = `${LEGO_MODULES}/${base}-legoblock`;
-  const baseDevcontainerTemplate: IDevcontainer = parseDevcontainer(`${basePath}/devcontainer.tmpl`);
+  const baseDevcontainerTemplate: IDevcontainer = parseDevcontainer(`${basePath}/devcontainer.tmpl.json`);
 
   verboseLog("[+] Build base Dockerfile locally and tag");
   child.execSync(`docker build -t ${tag} -f Dockerfile.tmpl .`, { "cwd": basePath });
@@ -134,14 +134,14 @@ const composeFeatures = (features: [FeatureItem | string] | undefined, base: str
     const featurePath = `${LEGO_MODULES}/${featureName}-legoblock/${suffix}`;
 
     verboseLog("[+] Merge features\'s devcontainer.tmpl.json to shadow file");
-    const featDevcontainerTemplate: IDevcontainer = parseDevcontainer(`${featurePath}/devcontainer.tmpl`);
+    const featDevcontainerTemplate: IDevcontainer = parseDevcontainer(`${featurePath}/devcontainer.tmpl.json`);
     _.merge(shadowDevcontainer, featDevcontainerTemplate);
 
     verboseLog("[+] Adding options to global buildArgs");
     // TODO
 
     verboseLog("[+] Copy apply.sh script to shadow apply-scripts-cache file.");
-    fs.copySync(`${featurePath}/apply.sh`, shadowScriptsDirectoryPath);
+    fs.copySync(`${featurePath}/apply.sh`, `${shadowScriptsDirectoryPath}/apply.sh`);
 
   });
 
