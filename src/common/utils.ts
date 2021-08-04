@@ -31,7 +31,7 @@ export function validateDecontainer(devcontainer: IDevcontainer){
       }
 }
 
-const fail = () => {
+export const fail = () => {
     log("FATAL ERR");
     process.exit(1);
   }

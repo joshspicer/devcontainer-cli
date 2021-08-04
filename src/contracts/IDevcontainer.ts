@@ -1,7 +1,9 @@
 export interface IDevcontainer {
-    base: string;
-    build: Build
-    features: [FeatureItem]
+    base?: string;
+    build?: Build
+    features?: [FeatureItem | string]
+    extensions?: [string]
+    postCreateCommand?: string
 }
 
 export interface Build {
@@ -15,3 +17,7 @@ export interface FeatureItem {
     options?: {};
     pinAt?: string;
 }
+
+export function isFeatureItem(feat: FeatureItem | string): feat is FeatureItem {
+    return (feat as FeatureItem).name !== undefined;
+  }

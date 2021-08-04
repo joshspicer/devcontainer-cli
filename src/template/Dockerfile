@@ -3,7 +3,7 @@ FROM BASE_IMG
 
 USER root
 
-#{containerEnvs}
+#{buildArgs}
 
 COPY apply-scripts-cache /tmp/apply-scripts-cache
 COPY do-apply.sh /tmp/do-apply.sh

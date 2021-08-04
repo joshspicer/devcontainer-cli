@@ -3,7 +3,7 @@
     "build": {
         "dockerfile": "Dockerfile",
         "args": {
-            "BASE_IMG": "legoBlockBaseImage"
+            "BASE_IMG": "legoblockbaseimgcached"
         }
     }
 }

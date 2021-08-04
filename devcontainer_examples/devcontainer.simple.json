@@ -1,8 +1,6 @@
 {
     "base": "joshspicer/ubuntu",
     "features": [
-        {
-            "name": "joshspicer/docker-in-docker"
-        }
+         "joshspicer/docker-in-docker"
     ]
 }

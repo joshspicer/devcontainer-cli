@@ -1,9 +1,7 @@
 {
     "base": "joshspicer/ubuntu",
     "features": [
-        {
-            "name": "joshspicer/docker-in-docker"
-        },
+        "joshspicer/docker-in-docker",
         {
             "name": "joshspicer/python",
             "options": {
@@ -16,9 +14,7 @@
                 "version": "3.7"
             }
         },
-        {
-            "name": "joshspicer/powershell"
-        },
+        "joshspicer/powershell",
         {
             "name": "azure_cli",
             "localPath": "./my_laptop_folder/azure_cli",

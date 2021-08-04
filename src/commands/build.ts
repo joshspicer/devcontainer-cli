@@ -1,8 +1,11 @@
 import * as child from 'child_process';
 import * as fs from 'fs-extra';
 import type { Arguments, CommandBuilder } from 'yargs';
-import { LEGO_TMP } from '../common/constants';
-import { setupDirectories, cloneFromGitHub, log, parseDevcontainer, validateDecontainer, cleanBuild, copyDir } from '../common/utils';
+import { LEGO_MODULES, LEGO_TMP } from '../common/constants';
+import { setupDirectories, cloneFromGitHub, log, parseDevcontainer, validateDecontainer, cleanBuild, fail } from '../common/utils';
+import _ from 'lodash';
+import { FeatureItem, IDevcontainer, isFeatureItem } from '../contracts/IDevcontainer';
+import * as path from 'path';
 
 type Options = {
     pathToDevcontainer: string;
@@ -11,6 +14,16 @@ type Options = {
 
 export const command: string = 'build pathToDevcontainer';
 export const desc: string = 'Builds a devcontainer';
+
+// Shadow dockerfile and devcontainer are built from composing bases and features
+const shadowDevcontainerPath = `${LEGO_TMP}/devcontainer.json`;
+const shadowDockerfilePath = `${LEGO_TMP}/Dockerfile`;
+const shadowScriptsDirectoryPath = `${LEGO_TMP}/apply-scripts-cache`;
+
+// Global State
+let shadowDevcontainer: IDevcontainer = {}
+let buildArgs: {} = {}
+let isVerbose = false;
 
 export const builder: CommandBuilder<Options, Options> = (yargs) =>
   yargs
@@ -21,44 +34,126 @@ export const builder: CommandBuilder<Options, Options> = (yargs) =>
     
 export const handler = (argv: Arguments<Options>): void => {
     const { pathToDevcontainer, verbose } = argv;
-    const isVerbose = verbose ?? false;
+    
+    // Reset global state.
+    isVerbose = verbose ?? false;
+    shadowDevcontainer = {}
 
     log(`Building devcontainer from ${pathToDevcontainer}`, true);
 
-    verboseLog("Ensuring intermediary directory is created", isVerbose);
+    verboseLog("Ensuring intermediary directory is created");
     
+    // Ensure Setup has been completed.
     cleanBuild();
     setupDirectories();
 
     let devcontainer = parseDevcontainer(pathToDevcontainer);
     let base = devcontainer.base;
     let features = devcontainer.features;
-
-    verboseLog(`Validating devcontainer`, isVerbose);
+    
+    verboseLog(`Validating devcontainer`);
     validateDecontainer(devcontainer);
 
-    verboseLog(`[+] Checking cache for base lego block: ${base}`, isVerbose);
-    const baseInCache = true; //TODO.
+    verboseLog(`[+] Checking cache for base lego block: ${base}`);
+    const baseInCache = true; //TODO. True assumes we have already done a `./devcontainer fetch <...>`
 
     if (!baseInCache) {
-      verboseLog(`[+] Lego block ${base} not in cache, fetching from remote`, isVerbose);
+      verboseLog(`[+] Lego block ${base} not in cache, fetching from remote`);
     }
 
-    verboseLog("[+] Copying over \'shadow\' template files to .legotmp", isVerbose);
+    verboseLog("[+] Copying over \'shadow\' template files to .legotmp");
     fs.copySync("../src/template", `${LEGO_TMP}/`);
 
-    verboseLog("[+] Build base Dockerfile and tag", isVerbose);
+    buildBase(base);
+
+    composeFeatures(features, (base as string));
     
+    verboseLog("[+] Write shadow files back to disk");
+    fs.writeFileSync(shadowDevcontainerPath, JSON.stringify(shadowDevcontainer));
 
-    verboseLog("[+] Merge base\'s devcontainer.tmpl.json to shadow file", isVerbose);
-
-    // ...
+    verboseLog("[+] Write buildArgs to shadow Dockerfile");
+    let shadowDockerfileString = fs.readFileSync(shadowDockerfilePath, { "encoding": "utf8"});
+    shadowDockerfileString = shadowDockerfileString.replace("#{buildArgs}", 'ARG MY_BUILD_ARG YES') // TODO: use buildArg dict.
+    fs.writeFileSync(shadowDockerfilePath, shadowDockerfileString);
 
     // Exit CLI
     process.exit(0);
 }
 
-const verboseLog = (str: string, isVerbose: boolean) => {
+
+const buildBase = (base: string | undefined) => {
+  if (base === undefined){
+    fail();
+  }
+
+  verboseLog("== BUILDING BASE ==");
+
+  const tag = "legoblockbaseimgcached"
+
+  const basePath = `${LEGO_MODULES}/${base}-legoblock`;
+  const baseDevcontainerTemplate: IDevcontainer = parseDevcontainer(`${basePath}/devcontainer.tmpl`);
+
+  verboseLog("[+] Build base Dockerfile locally and tag");
+  child.execSync(`docker build -t ${tag} -f Dockerfile.tmpl .`, { "cwd": basePath });
+
+  verboseLog("[+] Merge base\'s devcontainer.tmpl.json to shadow file");
+  _.merge(shadowDevcontainer, baseDevcontainerTemplate);
+}
+
+const composeFeatures = (features: [FeatureItem | string] | undefined, base: string) => {
+  verboseLog("== COMPOSING FEATURES ==");
+
+  if (features === undefined) {
+    return;
+  }
+
+  verboseLog("Determine which base implemention to apply, given the specified base")
+
+  features.forEach( (feat) => {
+
+    verboseLog(`[+] Checking cache for feature lego block: ${base}`);
+    const featureInCache = true; //TODO. True assumes we have already done a `./devcontainer fetch <...>`
+
+    if (!featureInCache) {
+      verboseLog(`[+] Lego block feature not in cache, fetching from remote...`); //TODO:
+    }
+
+    const suffix = determineFeatureSkuFromManifest(base);
+
+    // Possible parameters of a feature. Not all may be set.
+    let featureName: string = "";
+    let options: {} = {};
+
+    if (isFeatureItem(feat)) {
+      log("IMPLEMENT ME by parsing devcontainer")
+    } else {
+      // A simple string indicates no additional feature parameters provided.
+      featureName = feat;
+    }
+
+    const featurePath = `${LEGO_MODULES}/${featureName}-legoblock/${suffix}`;
+
+    verboseLog("[+] Merge features\'s devcontainer.tmpl.json to shadow file");
+    const featDevcontainerTemplate: IDevcontainer = parseDevcontainer(`${featurePath}/devcontainer.tmpl`);
+    _.merge(shadowDevcontainer, featDevcontainerTemplate);
+
+    verboseLog("[+] Adding options to global buildArgs");
+    // TODO
+
+    verboseLog("[+] Copy apply.sh script to shadow apply-scripts-cache file.");
+    fs.copySync(`${featurePath}/apply.sh`, shadowScriptsDirectoryPath);
+
+  });
+
+
+}
+
+const determineFeatureSkuFromManifest = (base: string) => {
+  return "ubuntu"; //TODO: Use the feature's manifest.json to determine this.
+}
+
+
+const verboseLog = (str: string) => {
   if (isVerbose) {
     log(str);
   }
