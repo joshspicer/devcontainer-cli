@@ -2,7 +2,7 @@ import * as child from 'child_process';
 import * as fs from 'fs-extra';
 import type { Arguments, CommandBuilder } from 'yargs';
 import { LEGO_MODULES, LEGO_TMP } from '../common/constants';
-import { setupDirectories, cloneFromGitHub, log, parseDevcontainer, validateDecontainer, cleanBuild, fail } from '../common/utils';
+import { setupDirectories, cloneFromGitHub, log, parseDevcontainer, validateDecontainer, cleanBuild, fail, LogType } from '../common/utils';
 import _ from 'lodash';
 import { FeatureItem, IDevcontainer, isFeatureItem } from '../contracts/IDevcontainer';
 import * as path from 'path';
@@ -10,6 +10,7 @@ import * as path from 'path';
 type Options = {
     pathToDevcontainer: string;
     verbose: boolean | undefined;
+    launch: boolean | undefined;
   };
 
 export const command: string = 'build pathToDevcontainer';
@@ -22,6 +23,7 @@ const shadowScriptsDirectoryPath = `${LEGO_TMP}/apply-scripts-cache`;
 
 // Global State
 let shadowDevcontainer: IDevcontainer = {}
+let shadowDockerFile: string = ''
 let buildArgs: {} = {}
 let isVerbose = false;
 
@@ -30,19 +32,24 @@ export const builder: CommandBuilder<Options, Options> = (yargs) =>
     .positional('pathToDevcontainer' , { type: 'string', demandOption: true, desc: "Path to devcontainer.json"})
     .options({
       verbose: { type: 'boolean', alias: 'v' },
+      launch: { type: 'boolean', alias: 'l' },
     })
     
 export const handler = (argv: Arguments<Options>): void => {
-    const { pathToDevcontainer, verbose } = argv;
+    const { pathToDevcontainer, verbose, launch } = argv;
+
+    const shadowDevcontainerTemplate: IDevcontainer = parseDevcontainer(shadowDevcontainerPath);
+    const shadowDockerfileTemplate = fs.readFileSync(shadowDockerfilePath, { "encoding": "utf8" });
+
     
     // Reset global state.
     isVerbose = verbose ?? false;
-    shadowDevcontainer = {}
+    shadowDevcontainer =  _.merge(shadowDevcontainer, shadowDevcontainerTemplate);
+    shadowDockerFile = shadowDockerfileTemplate;
 
-    log(`Building devcontainer from ${pathToDevcontainer}`, true);
+    log(`Building devcontainer from ${pathToDevcontainer}`, LogType.HEADER);
 
     verboseLog("Ensuring intermediary directory is created");
-    
     // Ensure Setup has been completed.
     cleanBuild();
     setupDirectories();
@@ -55,7 +62,7 @@ export const handler = (argv: Arguments<Options>): void => {
     validateDecontainer(devcontainer);
 
     verboseLog(`[+] Checking cache for base lego block: ${base}`);
-    const baseInCache = true; //TODO. True assumes we have already done a `./devcontainer fetch <...>`
+    const baseInCache = true; //TODO. True assumes we have already done a `./devcontainer fetch <...>` to fetch from GitHub
 
     if (!baseInCache) {
       verboseLog(`[+] Lego block ${base} not in cache, fetching from remote`);
@@ -65,16 +72,21 @@ export const handler = (argv: Arguments<Options>): void => {
     fs.copySync("../src/template", `${LEGO_TMP}/`);
 
     buildBase(base);
-
     composeFeatures(features, (base as string));
     
-    verboseLog("[+] Write shadow files back to disk");
+    verboseLog("[+] Writing final shadow devcontainer to disk");
     fs.writeFileSync(shadowDevcontainerPath, JSON.stringify(shadowDevcontainer));
+    fs.writeFileSync(shadowDockerfilePath, shadowDockerFile);
 
-    verboseLog("[+] Write buildArgs to shadow Dockerfile");
-    let shadowDockerfileString = fs.readFileSync(shadowDockerfilePath, { "encoding": "utf8"});
-    shadowDockerfileString = shadowDockerfileString.replace("#{buildArgs}", 'ARG MY_BUILD_ARG YES') // TODO: use buildArg dict.
-    fs.writeFileSync(shadowDockerfilePath, shadowDockerfileString);
+    verboseLog("[+] Writing final buildArgs to shadow Dockerfile and then string back to disk");
+    shadowDockerFile = shadowDockerFile.replace("#{buildArgs}", 'ARG MY_BUILD_ARG YES') // TODO: use buildArg dict.
+    fs.writeFileSync(shadowDockerfilePath, shadowDockerFile);
+
+    // Open up the final shadow files into vscode to see the final product
+    if (launch) {
+      verboseLog("[+] Opening in vscode");
+      child.execSync(`code ${LEGO_TMP}`);
+    }
 
     // Exit CLI
     process.exit(0);
@@ -88,13 +100,21 @@ const buildBase = (base: string | undefined) => {
 
   verboseLog("== BUILDING BASE ==");
 
-  const tag = "legoblockbaseimgcached"
-
   const basePath = `${LEGO_MODULES}/${base}-legoblock`;
   const baseDevcontainerTemplate: IDevcontainer = parseDevcontainer(`${basePath}/devcontainer.tmpl.json`);
+  const baseDockerfileTemplate = fs.readFileSync(`${basePath}/Dockerfile`, { "encoding": "utf8" });
 
-  verboseLog("[+] Build base Dockerfile locally and tag");
-  child.execSync(`docker build -t ${tag} -f Dockerfile.tmpl .`, { "cwd": basePath });
+  verboseLog("[+] Insert base Dockerfile definition as first stage of multi-stage Dockerfile.");
+  let lines = baseDockerfileTemplate.split('\n');
+
+  shadowDockerFile.replace('#{baseFrom}', `${lines[0]} as base`);
+
+  lines.splice(0,1);
+  var splicedBody = lines.join('\n');
+  shadowDockerFile.replace('#{baseBody}', splicedBody);
+
+  verboseLog("[+] Add \'<..> as base\' to Dockerfile");
+
 
   verboseLog("[+] Merge base\'s devcontainer.tmpl.json to shadow file");
   _.merge(shadowDevcontainer, baseDevcontainerTemplate);
@@ -141,7 +161,7 @@ const composeFeatures = (features: [FeatureItem | string] | undefined, base: str
     // TODO
 
     verboseLog("[+] Copy apply.sh script to shadow apply-scripts-cache file.");
-    fs.copySync(`${featurePath}/apply.sh`, `${shadowScriptsDirectoryPath}/${featureName.replace('', '')}-apply.sh`);
+    fs.copySync(`${featurePath}/apply.sh`, `${shadowScriptsDirectoryPath}/${featureName.replace('/', '')}-apply.sh`);
 
   });
 }
@@ -153,7 +173,7 @@ const determineFeatureSkuFromManifest = (base: string) => {
 
 const verboseLog = (str: string) => {
   if (isVerbose) {
-    log(str);
+    log(str, LogType.INFO);
   }
 }
 

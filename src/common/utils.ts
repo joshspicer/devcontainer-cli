@@ -36,13 +36,27 @@ export const fail = () => {
     process.exit(1);
   }
 
-export function log(msg: string, header: boolean = false) {
+export enum LogType {
+    'NORMAL',
+    'HEADER',
+    'INFO'
+}
+
+export function log(msg: string, logType: LogType = LogType.NORMAL) {
     const green = '\x1b[32m';
+    const blue = '\x1b[34m';
     const reset = '\x1b[0m';
-    if (header)
+
+    if (logType === LogType.HEADER)
     {
        msg = `${green}${msg}${reset}\n` 
     }
+
+    if (logType === LogType.INFO)
+    {
+       msg = `${blue}${msg}${reset}` 
+    }
+
     process.stdout.write(`${msg}\n`);
 }
 

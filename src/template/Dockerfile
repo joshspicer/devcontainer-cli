@@ -1,14 +1,19 @@
-ARG BASE_IMG
-FROM BASE_IMG
+#{baseFrom}
+
+#{baseBody}
+
+# -------------- #
+FROM base
 
 USER root
 
-#{buildArgs}
+#{containerEnvs}
 
 COPY apply-scripts-cache /tmp/apply-scripts-cache
 COPY do-apply.sh /tmp/do-apply.sh
 
-RUN do-apply.sh
+RUN chmod +x /tmp/do-apply.sh \
+    && /tmp/do-apply.sh
 
 ARG IMAGE_USER=root
 USER $IMAGE_USER

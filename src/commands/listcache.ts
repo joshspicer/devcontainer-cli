@@ -1,7 +1,7 @@
 import type { Arguments, CommandBuilder } from 'yargs';
 import * as child from 'child_process';
 import { LEGO_MODULES } from '../common/constants';
-import { log } from '../common/utils';
+import { log, LogType } from '../common/utils';
 
 type Options = {
     verbose: boolean;
@@ -13,7 +13,7 @@ export const desc: string = 'Fetch the provided lego block definition from GitHu
 export const handler = (argv: Arguments<Options>): void => {
     const { verbose } = argv;
 
-    log("Listing Cache...", true);
+    log("Listing Cache...", LogType.HEADER);
     let output: string = child.execSync(`tree ${LEGO_MODULES}`).toString();
     log(output);
 
