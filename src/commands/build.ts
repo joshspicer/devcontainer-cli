@@ -38,9 +38,15 @@ export const builder: CommandBuilder<Options, Options> = (yargs) =>
 export const handler = (argv: Arguments<Options>): void => {
     const { pathToDevcontainer, verbose, launch } = argv;
 
+    // Ensure Setup has been completed.
+    cleanBuild();
+    setupDirectories();
+
+    verboseLog("[+] Copying over \'shadow\' template files to .legotmp");
+    fs.copySync("../src/template", `${LEGO_TMP}/`);
+
     const shadowDevcontainerTemplate: IDevcontainer = parseDevcontainer(shadowDevcontainerPath);
     const shadowDockerfileTemplate = fs.readFileSync(shadowDockerfilePath, { "encoding": "utf8" });
-
     
     // Reset global state.
     isVerbose = verbose ?? false;
@@ -50,9 +56,7 @@ export const handler = (argv: Arguments<Options>): void => {
     log(`Building devcontainer from ${pathToDevcontainer}`, LogType.HEADER);
 
     verboseLog("Ensuring intermediary directory is created");
-    // Ensure Setup has been completed.
-    cleanBuild();
-    setupDirectories();
+
 
     let devcontainer = parseDevcontainer(pathToDevcontainer);
     let base = devcontainer.base;
@@ -68,15 +72,11 @@ export const handler = (argv: Arguments<Options>): void => {
       verboseLog(`[+] Lego block ${base} not in cache, fetching from remote`);
     }
 
-    verboseLog("[+] Copying over \'shadow\' template files to .legotmp");
-    fs.copySync("../src/template", `${LEGO_TMP}/`);
-
     buildBase(base);
     composeFeatures(features, (base as string));
     
     verboseLog("[+] Writing final shadow devcontainer to disk");
     fs.writeFileSync(shadowDevcontainerPath, JSON.stringify(shadowDevcontainer));
-    fs.writeFileSync(shadowDockerfilePath, shadowDockerFile);
 
     verboseLog("[+] Writing final buildArgs to shadow Dockerfile and then string back to disk");
     shadowDockerFile = shadowDockerFile.replace("#{buildArgs}", 'ARG MY_BUILD_ARG YES') // TODO: use buildArg dict.
@@ -102,16 +102,17 @@ const buildBase = (base: string | undefined) => {
 
   const basePath = `${LEGO_MODULES}/${base}-legoblock`;
   const baseDevcontainerTemplate: IDevcontainer = parseDevcontainer(`${basePath}/devcontainer.tmpl.json`);
-  const baseDockerfileTemplate = fs.readFileSync(`${basePath}/Dockerfile`, { "encoding": "utf8" });
+  const baseDockerfileTemplate = fs.readFileSync(`${basePath}/Dockerfile.tmpl`, { "encoding": "utf8" });
 
   verboseLog("[+] Insert base Dockerfile definition as first stage of multi-stage Dockerfile.");
   let lines = baseDockerfileTemplate.split('\n');
+  
 
-  shadowDockerFile.replace('#{baseFrom}', `${lines[0]} as base`);
+  shadowDockerFile = shadowDockerFile.replace('#{baseFrom}', `${lines[0]} as base`);
 
   lines.splice(0,1);
   var splicedBody = lines.join('\n');
-  shadowDockerFile.replace('#{baseBody}', splicedBody);
+  shadowDockerFile = shadowDockerFile.replace('#{baseBody}', splicedBody);
 
   verboseLog("[+] Add \'<..> as base\' to Dockerfile");
 
