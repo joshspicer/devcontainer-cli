@@ -34,6 +34,12 @@ export const builder: CommandBuilder<Options, Options> = (yargs) =>
       verbose: { type: 'boolean', alias: 'v' },
       launch: { type: 'boolean', alias: 'l' },
     })
+
+function customizer(objValue:any, srcValue:any) {
+  if (_.isArray(objValue)) {
+    return objValue.concat(srcValue);
+  }
+}
     
 export const handler = (argv: Arguments<Options>): void => {
     const { pathToDevcontainer, verbose, launch } = argv;
@@ -50,12 +56,12 @@ export const handler = (argv: Arguments<Options>): void => {
     
     // Reset global state.
     isVerbose = verbose ?? false;
-    shadowDevcontainer =  _.merge(shadowDevcontainer, shadowDevcontainerTemplate);
+    shadowDevcontainer =  _.mergeWith(shadowDevcontainer, shadowDevcontainerTemplate, customizer);
     shadowDockerFile = shadowDockerfileTemplate;
 
-    log(`Building devcontainer from ${pathToDevcontainer}`, LogType.HEADER);
+    log(`[!] Building devcontainer from ${pathToDevcontainer}`, LogType.HEADER);
 
-    verboseLog("Ensuring intermediary directory is created");
+    verboseLog("[+] Ensuring intermediary directory is created");
 
 
     let devcontainer = parseDevcontainer(pathToDevcontainer);
@@ -101,7 +107,7 @@ const buildBase = (base: string | undefined) => {
     fail();
   }
 
-  verboseLog("== BUILDING BASE ==");
+  log("\n== BUILDING BASE ==", LogType.HEADER);
 
   const basePath = `${LEGO_MODULES}/${base}-legoblock`;
   const baseDevcontainerTemplate: IDevcontainer = parseDevcontainer(`${basePath}/devcontainer.tmpl.json`);
@@ -121,11 +127,11 @@ const buildBase = (base: string | undefined) => {
 
 
   verboseLog("[+] Merge base\'s devcontainer.tmpl.json to shadow file");
-  _.merge(shadowDevcontainer, baseDevcontainerTemplate);
+  _.extend(shadowDevcontainer, baseDevcontainerTemplate);
 }
 
 const composeFeatures = (features: [FeatureItem | string] | undefined, base: string) => {
-  verboseLog("== COMPOSING FEATURES ==");
+  log("\n== COMPOSING FEATURES ==", LogType.HEADER);
 
   if (features === undefined) {
     return;
@@ -135,7 +141,20 @@ const composeFeatures = (features: [FeatureItem | string] | undefined, base: str
 
   features.forEach( (feat) => {
 
-    verboseLog(`[+] Checking cache for feature lego block: ${base}`);
+    // Possible parameters of a feature. Not all may be set.
+    let featureName: string = "";
+    let options: {} = {};
+
+
+    if (isFeatureItem(feat)) {
+      log("IMPLEMENT ME")
+      fail();
+    } else {
+      // A simple string indicates no additional feature parameters provided.
+      featureName = feat;
+    }
+
+    verboseLog(`[+] Checking cache for feature lego block: ${featureName}`);
     const featureInCache = true; //TODO. True assumes we have already done a `./devcontainer fetch <...>`
 
     if (!featureInCache) {
@@ -144,22 +163,11 @@ const composeFeatures = (features: [FeatureItem | string] | undefined, base: str
 
     const suffix = determineFeatureSkuFromManifest(base);
 
-    // Possible parameters of a feature. Not all may be set.
-    let featureName: string = "";
-    let options: {} = {};
-
-    if (isFeatureItem(feat)) {
-      log("IMPLEMENT ME by parsing devcontainer")
-    } else {
-      // A simple string indicates no additional feature parameters provided.
-      featureName = feat;
-    }
-
     const featurePath = `${LEGO_MODULES}/${featureName}-legoblock/${suffix}`;
 
     verboseLog("[+] Merge features\'s devcontainer.tmpl.json to shadow file");
     const featDevcontainerTemplate: IDevcontainer = parseDevcontainer(`${featurePath}/devcontainer.tmpl.json`);
-    _.merge(shadowDevcontainer, featDevcontainerTemplate);
+    shadowDevcontainer = _.mergeWith(shadowDevcontainer, featDevcontainerTemplate, customizer);
 
     verboseLog("[+] Adding options to global buildArgs");
     // TODO

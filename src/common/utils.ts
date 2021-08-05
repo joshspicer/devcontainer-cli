@@ -45,6 +45,7 @@ export enum LogType {
 export function log(msg: string, logType: LogType = LogType.NORMAL) {
     const green = '\x1b[32m';
     const blue = '\x1b[34m';
+    const magenta = '\x1b[35m';
     const reset = '\x1b[0m';
 
     if (logType === LogType.HEADER)
@@ -54,7 +55,7 @@ export function log(msg: string, logType: LogType = LogType.NORMAL) {
 
     if (logType === LogType.INFO)
     {
-       msg = `${blue}${msg}${reset}` 
+       msg = `  ${magenta}${msg}${reset}` 
     }
 
     process.stdout.write(`${msg}\n`);
