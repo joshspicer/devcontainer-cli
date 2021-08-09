@@ -4,8 +4,9 @@
         {
             "name": "joshspicer/helloworld",
             "options": {
-                "language": "italian"
+                "LANG": "italian",
+                "HAS_COLOR": true
             }
-        },
+        }
     ]
 }
