@@ -2,7 +2,7 @@ import * as child from 'child_process';
 import * as fs from 'fs-extra';
 import type { Arguments, CommandBuilder } from 'yargs';
 import { LEGO_MODULES, LEGO_TMP } from '../common/constants';
-import { setupDirectories, cloneFromGitHub, log, parseDevcontainer, validateDecontainer, cleanBuild, fail, LogType } from '../common/utils';
+import { setupDirectories, cloneFromGitHub, log, parseDevcontainer, validateDecontainer, cleanBuild, fail, LogType, generateBuildArgsForDockerFile, checkCacheFor, parseFeatureJson } from '../common/utils';
 import _ from 'lodash';
 import { FeatureItem, IDevcontainer, isFeatureItem } from '../contracts/IDevcontainer';
 import * as path from 'path';
@@ -24,7 +24,7 @@ const shadowScriptsDirectoryPath = `${LEGO_TMP}/apply-scripts-cache`;
 // Global State
 let shadowDevcontainer: IDevcontainer = {}
 let shadowDockerFile: string = ''
-let buildArgs: {} = {}
+let buildArgs: { [key: string]: string } = {}
 let isVerbose = false;
 
 export const builder: CommandBuilder<Options, Options> = (yargs) =>
@@ -71,13 +71,6 @@ export const handler = (argv: Arguments<Options>): void => {
     verboseLog(`Validating devcontainer`);
     validateDecontainer(devcontainer);
 
-    verboseLog(`[+] Checking cache for base lego block: ${base}`);
-    const baseInCache = true; //TODO. True assumes we have already done a `./devcontainer fetch <...>` to fetch from GitHub
-
-    if (!baseInCache) {
-      verboseLog(`[+] Lego block ${base} not in cache, fetching from remote`);
-    }
-
     buildBase(base);
     composeFeatures(features, (base as string));
     
@@ -85,7 +78,7 @@ export const handler = (argv: Arguments<Options>): void => {
     fs.writeFileSync(shadowDevcontainerPath, JSON.stringify(shadowDevcontainer));
 
     verboseLog("[+] Writing final buildArgs to shadow Dockerfile and then string back to disk");
-    shadowDockerFile = shadowDockerFile.replace("#{buildArgs}", 'ARG MY_BUILD_ARG YES') // TODO: use buildArg dict.
+    shadowDockerFile = shadowDockerFile.replace("#{buildArgs}", generateBuildArgsForDockerFile(buildArgs));
     fs.writeFileSync(shadowDockerfilePath, shadowDockerFile);
 
     // Open up the final shadow files into vscode to see the final product
@@ -93,7 +86,7 @@ export const handler = (argv: Arguments<Options>): void => {
       verboseLog("[+] Copying to tmp directory and opening in vscode");
       fs.removeSync("/tmp/demo/");
       fs.mkdirpSync("/tmp/demo")
-      fs.copySync(`${LEGO_TMP}`, '/tmp/demo/.devcontainer/', { "recursive": true , "overwrite": true});
+      fs.copySync(`${LEGO_TMP}`, '/tmp/demo/.devcontainer/', { "recursive": true , "overwrite": true });
       child.execSync(`code /tmp/demo/`);
     }
 
@@ -112,6 +105,13 @@ const buildBase = (base: string | undefined) => {
   const basePath = `${LEGO_MODULES}/${base}-legoblock`;
   const baseDevcontainerTemplate: IDevcontainer = parseDevcontainer(`${basePath}/devcontainer.tmpl.json`);
   const baseDockerfileTemplate = fs.readFileSync(`${basePath}/Dockerfile.tmpl`, { "encoding": "utf8" });
+
+  verboseLog(`[+] Checking cache for base lego block: ${base}`);
+
+  if (!checkCacheFor(base)) {
+    verboseLog(`[+] Lego block ${base} not in cache, fetching from remote`);
+    cloneFromGitHub(base);
+  }
 
   verboseLog("[+] Insert base Dockerfile definition as first stage of multi-stage Dockerfile.");
   let lines = baseDockerfileTemplate.split('\n');
@@ -136,8 +136,6 @@ const composeFeatures = (features: [FeatureItem | string] | undefined, base: str
     return;
   }
 
-  verboseLog("Determine which base implemention to apply, given the specified base")
-
   features.forEach( (feat) => {
 
     // Possible parameters of a feature. Not all may be set.
@@ -154,22 +152,27 @@ const composeFeatures = (features: [FeatureItem | string] | undefined, base: str
     }
 
     verboseLog(`[+] Checking cache for feature lego block: ${featureName}`);
-    const featureInCache = true; //TODO. True assumes we have already done a `./devcontainer fetch <...>`
-
-    if (!featureInCache) {
-      verboseLog(`[+] Lego block feature not in cache, fetching from remote...`); //TODO:
+    if (!checkCacheFor(featureName)) {
+      verboseLog(`[+] Lego block ${featureName} not in cache, fetching from remote`);
+      cloneFromGitHub(base);
     }
 
-    const suffix = determineFeatureSkuFromManifest(base);
+    const sku = determineFeatureSkuFromManifest(base); // TODO: currently hardcoded.
+    
+    if (sku === "" || sku === undefined) {
+      log(`No lego block definition in ${featureName} compatible with ${base}. Exiting.`, LogType.ERROR);
 
-    const featurePath = `${LEGO_MODULES}/${featureName}-legoblock/${suffix}`;
+    }
+
+    const featurePath = `${LEGO_MODULES}/${featureName}-legoblock/${sku}`;
 
     verboseLog("[+] Merge features\'s devcontainer.tmpl.json to shadow file");
     const featDevcontainerTemplate: IDevcontainer = parseDevcontainer(`${featurePath}/devcontainer.tmpl.json`);
     shadowDevcontainer = _.mergeWith(shadowDevcontainer, featDevcontainerTemplate, customizer);
 
+    verboseLog("[+] Processing feature.json");
     verboseLog("[+] Adding options to global buildArgs");
-    // TODO
+    const featureJson = parseFeatureJson(`${featurePath}/feature.json`);
 
     verboseLog("[+] Copy apply.sh script to shadow apply-scripts-cache file.");
     fs.copySync(`${featurePath}/apply.sh`, `${shadowScriptsDirectoryPath}/${featureName.replace('/', '')}-apply.sh`);

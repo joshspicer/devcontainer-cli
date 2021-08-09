@@ -4,6 +4,8 @@ import * as path from 'path';
 import { LEGO_MODULES, LEGO_TMP } from '../common/constants'
 import { IDevcontainer } from '../contracts/IDevcontainer';
 import { IManifest, LegoFlavor } from '../contracts/IManifest';
+import _ from 'lodash';
+import { Feature } from '../contracts/Features';
 
 export function setupDirectories() {
     const required_directories = [LEGO_MODULES, LEGO_TMP ];
@@ -25,10 +27,22 @@ export function parseDevcontainer(pathToDevcontainer: string): IDevcontainer {
     return JSON.parse(fs.readFileSync(pathToDevcontainer, 'utf8'));   
 }
 
+export function parseFeatureJson(pathToFeatureJson: string): Feature {
+    return JSON.parse(fs.readFileSync(pathToFeatureJson, 'utf8'));
+}
+
 export function validateDecontainer(devcontainer: IDevcontainer){
     if (devcontainer.base === undefined || devcontainer.base === "") {
         fail();
       }
+}
+
+export function generateBuildArgsForDockerFile(buildArgs: { [key: string]: string }): string {
+    let outputStr = ''
+    for (const [key, value] of Object.entries(buildArgs)) {
+        outputStr += `ARG ${key} ${value}\n`;
+    }
+    return outputStr;
 }
 
 export const fail = () => {
@@ -39,11 +53,13 @@ export const fail = () => {
 export enum LogType {
     'NORMAL',
     'HEADER',
-    'INFO'
+    'INFO',
+    'ERROR'
 }
 
 export function log(msg: string, logType: LogType = LogType.NORMAL) {
     const green = '\x1b[32m';
+    const red = '\x1b91m';
     const blue = '\x1b[34m';
     const magenta = '\x1b[35m';
     const reset = '\x1b[0m';
@@ -56,6 +72,11 @@ export function log(msg: string, logType: LogType = LogType.NORMAL) {
     if (logType === LogType.INFO)
     {
        msg = `  ${magenta}${msg}${reset}` 
+    }
+
+    if (logType === LogType.ERROR)
+    {
+       msg = `  [!] ${red}${msg}${reset}` 
     }
 
     process.stdout.write(`${msg}\n`);
@@ -83,17 +104,31 @@ export function tryInspectManifest(nwo: string): IManifest | undefined  {
       }
 }
 
-export function cloneFromGitHub(nwo: string) {
+export function cloneFromGitHub(nwo: string | undefined) {
+    if (nwo === undefined) {
+        fail();
+    }
+
     var url = `https://github.com/${nwo}.git`;
 
     var path = `./${LEGO_MODULES}/${nwo}`;
 
-    if (!fs.existsSync(`./${LEGO_MODULES}/${nwo}`)) {
-        fs.mkdirSync(`./${LEGO_MODULES}/${nwo}`, { recursive: true });
-    } else {
+    if (checkCacheFor(nwo)) {
         log("Directory already exists. Please delete cached directory and try again.");
         process.exit(0);
     }
+    else {
+        fs.mkdirSync(path, { recursive: true });
+    }
+
     child.execSync(`git clone ${url} ${path}`);
     log("");
+}
+
+export function checkCacheFor(nwo: string | undefined): boolean {
+    if (nwo === undefined) {
+        fail();
+    }
+    
+    return fs.existsSync(`./${LEGO_MODULES}/${nwo}`);
 }
