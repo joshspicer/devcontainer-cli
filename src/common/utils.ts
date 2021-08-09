@@ -44,7 +44,7 @@ export function validateDecontainer(devcontainer: IDevcontainer){
 export function generateBuildArgsForDockerFile(buildArgs: { [key: string]: string }): string {
     let outputStr = ''
     for (const [key, value] of Object.entries(buildArgs)) {
-        outputStr += `ARG ${key} ${value}\n`;
+        outputStr += `ARG ${key}=${value}\n`;
     }
     return outputStr;
 }
