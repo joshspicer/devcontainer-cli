@@ -22,9 +22,6 @@
                 "IncludeAzCopy": true
             }
         },
-        {
-            "name": "github_cli",
-            "pinAt": "aeb5095ca29fe924ba7e8749e5a34c12992eca6e"
-        }
+        "github_cli@aeb5095ca29fe924ba7e8749e5a34c12992eca6e"
     ]
 }

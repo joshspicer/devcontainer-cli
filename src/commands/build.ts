@@ -1,11 +1,11 @@
 import * as child from 'child_process';
+import * as path from 'path';
 import * as fs from 'fs-extra';
 import type { Arguments, CommandBuilder } from 'yargs';
 import { LEGO_MODULES, LEGO_TMP } from '../common/constants';
-import { setupDirectories, cloneFromGitHubIfNotCached, log, parseDevcontainer, validateDecontainer, cleanBuild, fail, LogType, generateBuildArgsForDockerFile, existsInCache, parseFeatureJson } from '../common/utils';
+import { setupDirectories, cloneFromGitHubIfNotCached, log, parseDevcontainer, validateDecontainer, cleanBuild, fail, LogType, generateBuildArgsForDockerFile, existsInCache, parseFeatureJson, tryExtractVersion } from '../common/utils';
 import _ from 'lodash';
 import { FeatureItem, IDevcontainer, isFeatureItem } from '../contracts/IDevcontainer';
-import * as path from 'path';
 
 type Options = {
     pathToDevcontainer: string;
@@ -138,9 +138,9 @@ const composeFeatures = (features: [FeatureItem | string] | undefined, base: str
   features.forEach( (feat) => {
 
     // Possible parameters of a feature. Not all may be set.
-    let featureName: string = "";
+    let featureName: string = '';
+    let featureVersion: string = '';
     let featureOptions: {} | undefined = undefined;
-
 
     if (isFeatureItem(feat)) {
       featureName = feat.name;
@@ -148,6 +148,13 @@ const composeFeatures = (features: [FeatureItem | string] | undefined, base: str
     } else {
       // A simple string indicates no additional feature parameters provided.
       featureName = feat;
+    }
+
+    verboseLog(`[+] Parsing out optional version attribute from feature's name`);
+    let maybeNameVersion = tryExtractVersion(featureName);
+    if (maybeNameVersion !== undefined) {
+      featureName = maybeNameVersion.name;
+      featureVersion = maybeNameVersion.version;
     }
 
     verboseLog(`[+] Checking cache for feature lego block: ${featureName}`);

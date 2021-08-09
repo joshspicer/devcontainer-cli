@@ -2,13 +2,13 @@ import * as child from 'child_process';
 import * as fs from 'fs-extra';
 import * as path from 'path';
 import { LEGO_MODULES, LEGO_TMP } from '../common/constants'
-import { IDevcontainer } from '../contracts/IDevcontainer';
+import { IDevcontainer, isFeatureItem } from '../contracts/IDevcontainer';
 import { IManifest, LegoFlavor } from '../contracts/IManifest';
 import _ from 'lodash';
 import { Feature } from '../contracts/Features';
 
 export function setupDirectories() {
-    const required_directories = [LEGO_MODULES, LEGO_TMP ];
+    const required_directories = [ LEGO_MODULES, LEGO_TMP ];
     
     required_directories.forEach(dir => {
         const exist = fs.existsSync(dir);
@@ -23,16 +23,46 @@ export function cleanBuild(removeCache: boolean = false) {
     if (removeCache) {
         fs.removeSync(LEGO_MODULES);
     }
-
 }
 
-
 export function parseDevcontainer(pathToDevcontainer: string): IDevcontainer {
-    return JSON.parse(fs.readFileSync(pathToDevcontainer, 'utf8'));   
+    let parsed: IDevcontainer =  JSON.parse(fs.readFileSync(pathToDevcontainer, 'utf8'));
+    validateDecontainer(parsed);
+
+    // See if there's a version appended to the base lego block (<NAME>@<VERSION>)
+    const maybeNameAndVersion = tryExtractVersion(parsed.base);
+    if (maybeNameAndVersion !== undefined) {
+        parsed.base = maybeNameAndVersion.name;
+        parsed.baseVersion = maybeNameAndVersion.version;
+    }
+
+    return parsed;
 }
 
 export function parseFeatureJson(pathToFeatureJson: string): Feature {
     return JSON.parse(fs.readFileSync(pathToFeatureJson, 'utf8'));
+}
+
+export function tryExtractVersion(name: string | undefined): VersionedName | undefined {
+    if (name === undefined) {
+        fail();
+        return;
+    }
+    const pieces = name.split('@');
+    
+    if (pieces?.length === 2) {
+        let output: VersionedName = {
+            "name": pieces[0],
+            "version": pieces[1]   
+        }
+        return output;
+    }
+    return undefined;
+}
+
+export interface VersionedName {
+    name: string;
+    version: string;
 }
 
 export function validateDecontainer(devcontainer: IDevcontainer){
@@ -112,7 +142,7 @@ export function tryInspectManifest(nwo: string): IManifest | undefined  {
       }
 }
 
-export function cloneFromGitHubIfNotCached(nwo: string | undefined, failOnExists: boolean = false) {
+export function cloneFromGitHubIfNotCached(nwo: string | undefined, tag: string = '', failOnExists: boolean = false) {
     if (nwo === undefined) {
         fail();
     }
@@ -136,9 +166,16 @@ export function cloneFromGitHubIfNotCached(nwo: string | undefined, failOnExists
 
         child.execSync(`git clone ${url} ${path}`);
         log("");
+
+        if (tag !== undefined && tag !== '') {
+            try {
+                child.execSync(`git checkout ${tag}`, { "cwd": path } );
+            } catch(e) {
+                log(`[!] Could not checkout version ${tag}`, LogType.ERROR);
+            }
+        }
     }
 }
-
 
 
 export function existsInCache(nwo: string | undefined): boolean {

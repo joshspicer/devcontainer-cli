@@ -1,0 +1,6 @@
+{
+    "base": "joshspicer/ubuntu",
+    "features": [
+         "joshspicer/helloworld@v0.1"
+    ]
+}
