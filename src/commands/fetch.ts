@@ -1,5 +1,5 @@
 import type { Arguments, CommandBuilder } from 'yargs';
-import { setupDirectories, cloneFromGitHub, log, LogType } from '../common/utils';
+import { setupDirectories, cloneFromGitHubIfNotCached, log, LogType } from '../common/utils';
 
 type Options = {
     legoBlockName: string;
@@ -20,7 +20,7 @@ export const handler = (argv: Arguments<Options>): void => {
 
     // Clone the lego block from GitHub
     log(`Fetching legoblock: ${legoBlockName}\n`, LogType.HEADER);
-    cloneFromGitHub(legoBlockName);
+    cloneFromGitHubIfNotCached(legoBlockName);
 
     // Exit CLI
     process.exit(0);

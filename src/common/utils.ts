@@ -104,29 +104,37 @@ export function tryInspectManifest(nwo: string): IManifest | undefined  {
       }
 }
 
-export function cloneFromGitHub(nwo: string | undefined) {
+export function cloneFromGitHubIfNotCached(nwo: string | undefined, failOnExists: boolean = false) {
     if (nwo === undefined) {
         fail();
     }
 
-    var url = `https://github.com/${nwo}.git`;
-
+    var url = `https://github.com/${nwo}-legoblock.git`;
     var path = `./${LEGO_MODULES}/${nwo}`;
 
-    if (checkCacheFor(nwo)) {
-        log("Directory already exists. Please delete cached directory and try again.");
-        process.exit(0);
+    if (existsInCache(nwo)) {
+        if (failOnExists) {
+            log("Directory already exists. Please delete cached directory and try again.");
+            process.exit(0);
+        } else {
+            log("Legoblock already cached. Continuing...");
+            return
+        }
     }
+    // Not in cache, must create directory and then fetch.
     else {
+        log("Fetching...");
         fs.mkdirSync(path, { recursive: true });
-    }
 
-    child.execSync(`git clone ${url} ${path}`);
-    log("");
+        child.execSync(`git clone ${url} ${path}`);
+        log("");
+    }
 }
 
-export function checkCacheFor(nwo: string | undefined): boolean {
-    if (nwo === undefined) {
+
+
+export function existsInCache(nwo: string | undefined): boolean {
+    if (nwo === undefined || nwo === "") {
         fail();
     }
     
