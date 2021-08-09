@@ -11,6 +11,7 @@ type Options = {
     pathToDevcontainer: string;
     verbose: boolean | undefined;
     launch: boolean | undefined;
+    clean_cache: boolean | undefined;
   };
 
 export const command: string = 'build pathToDevcontainer';
@@ -33,6 +34,7 @@ export const builder: CommandBuilder<Options, Options> = (yargs) =>
     .options({
       verbose: { type: 'boolean', alias: 'v' },
       launch: { type: 'boolean', alias: 'l' },
+      clean_cache: { type: 'boolean', alias: 'c' }
     })
 
 
@@ -43,10 +45,10 @@ function customizer(objValue:any, srcValue:any) {
 }
     
 export const handler = (argv: Arguments<Options>): void => {
-    const { pathToDevcontainer, verbose, launch } = argv;
+    const { pathToDevcontainer, verbose, launch, clean_cache } = argv;
 
     // Ensure Setup has been completed.
-    cleanBuild();
+    cleanBuild(clean_cache);
     setupDirectories();
 
     verboseLog("[+] Copying over \'shadow\' template files to .legotmp");

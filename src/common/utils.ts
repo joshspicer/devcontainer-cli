@@ -18,8 +18,12 @@ export function setupDirectories() {
     });
 }
 
-export function cleanBuild() {
-    const exists = fs.removeSync(LEGO_TMP);
+export function cleanBuild(removeCache: boolean = false) {
+    fs.removeSync(LEGO_TMP);
+    if (removeCache) {
+        fs.removeSync(LEGO_MODULES);
+    }
+
 }
 
 
@@ -83,12 +87,16 @@ export function log(msg: string, logType: LogType = LogType.NORMAL) {
 }
 
 export function tryInspectManifest(nwo: string): IManifest | undefined  {
+    if (nwo === undefined) {
+        fail();
+    }
 
     try {
-        process.chdir(`./${LEGO_MODULES}/${nwo}`);
+        const rootDir = `./${LEGO_MODULES}/${nwo}`;
+        const manifestLocation = `${rootDir}/manifest.json`;
 
-        if (fs.existsSync('./manifest.json')) {
-            var manifest: IManifest = JSON.parse(fs.readFileSync('./manifest.json', 'utf8'));
+        if (fs.existsSync(manifestLocation)) {
+            var manifest: IManifest = JSON.parse(fs.readFileSync(manifestLocation, 'utf8'));
             manifest.nwo = nwo;
             
         } else {
