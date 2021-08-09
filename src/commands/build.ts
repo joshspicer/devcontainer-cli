@@ -116,7 +116,6 @@ const buildBase = (base: string | undefined) => {
   verboseLog("[+] Insert base Dockerfile definition as first stage of multi-stage Dockerfile.");
   let lines = baseDockerfileTemplate.split('\n');
   
-
   shadowDockerFile = shadowDockerFile.replace('#{baseFrom}', `${lines[0]} as base`);
 
   lines.splice(0,1);

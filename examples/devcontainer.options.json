@@ -1,0 +1,11 @@
+{
+    "base": "joshspicer/ubuntu",
+    "features": [
+        {
+            "name": "joshspicer/helloworld",
+            "options": {
+                "language": "italian"
+            }
+        },
+    ]
+}
