@@ -26,11 +26,13 @@ export function cleanBuild(removeCache: boolean = false) {
 }
 
 export function parseDevcontainer(pathToDevcontainer: string): IDevcontainer {
+
+    // This may be either a "lego block" devcontainer with a base defined, or if may
+    // be an "old-fashioned" devcontainer (when we parse the "final", shadow devcontainer)
     let parsed: IDevcontainer =  JSON.parse(fs.readFileSync(pathToDevcontainer, 'utf8'));
-    validateDecontainer(parsed);
 
     // See if there's a version appended to the base lego block (<NAME>@<VERSION>)
-    const maybeNameAndVersion = tryExtractVersion(parsed.base);
+    const maybeNameAndVersion = tryExtractVersion(parsed?.base);
     if (maybeNameAndVersion !== undefined) {
         parsed.base = maybeNameAndVersion.name;
         parsed.baseVersion = maybeNameAndVersion.version;
@@ -45,8 +47,7 @@ export function parseFeatureJson(pathToFeatureJson: string): Feature {
 
 export function tryExtractVersion(name: string | undefined): VersionedName | undefined {
     if (name === undefined) {
-        fail();
-        return;
+        return undefined;
     }
     const pieces = name.split('@');
     
@@ -67,7 +68,7 @@ export interface VersionedName {
 
 export function validateDecontainer(devcontainer: IDevcontainer){
     if (devcontainer.base === undefined || devcontainer.base === "") {
-        fail();
+        fail("Valid devcontainers must define a base.");
       }
 }
 
@@ -79,8 +80,8 @@ export function generateBuildArgsForDockerFile(buildArgs: { [key: string]: strin
     return outputStr;
 }
 
-export const fail = () => {
-    log("FATAL ERR");
+export const fail = (err: string) => {
+    log(`FATAL ERR: ${err}`);
     process.exit(1);
   }
 
@@ -118,7 +119,7 @@ export function log(msg: string, logType: LogType = LogType.NORMAL) {
 
 export function tryInspectManifest(nwo: string): IManifest | undefined  {
     if (nwo === undefined) {
-        fail();
+        fail("Cannot inspect manifest with undefined name.");
     }
 
     try {
@@ -144,7 +145,7 @@ export function tryInspectManifest(nwo: string): IManifest | undefined  {
 
 export function cloneFromGitHubIfNotCached(nwo: string | undefined, tag: string = '', failOnExists: boolean = false) {
     if (nwo === undefined) {
-        fail();
+        fail("Cannot clone from github if 'name with owner' is undefined.");
     }
 
     var url = `https://github.com/${nwo}-legoblock.git`;
@@ -180,7 +181,7 @@ export function cloneFromGitHubIfNotCached(nwo: string | undefined, tag: string 
 
 export function existsInCache(nwo: string | undefined): boolean {
     if (nwo === undefined || nwo === "") {
-        fail();
+        fail("Cannot search cache with undefined name.");
     }
     
     return fs.existsSync(`./${LEGO_MODULES}/${nwo}`);

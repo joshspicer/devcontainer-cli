@@ -100,7 +100,7 @@ export const handler = (argv: Arguments<Options>): void => {
 
 const buildBase = (base: string | undefined) => {
   if (base === undefined){
-    fail();
+    fail("Base is undefined, cannot build.");
   }
 
   log("\n== BUILDING BASE ==", LogType.HEADER);
