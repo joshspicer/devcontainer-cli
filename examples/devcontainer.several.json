@@ -1,0 +1,13 @@
+{
+    "base": "joshspicer/ubuntu",
+    "features": [
+        {
+            "name": "joshspicer/helloworld",
+            "options": {
+                "LANG": "italian",
+                "HAS_COLOR": true
+            }
+        },
+        "joshspicer/ghcli@v0.1.0"
+    ]
+}
